@@ -66,6 +66,49 @@ After transferring the project to a new repo, rewire the Supabase project and ap
 
    If you have no migrations in `supabase/migrations/`, this step does nothing until you add migration files. Your app still works; it uses the schema already in the Supabase project (or the one you set up in the dashboard).
 
+## Deploy Edge Functions (new project)
+
+The app uses two Supabase Edge Functions. Deploy them to your **new** project (`znjtxrzmlprhqaylimqm`) so “Generate ideas” and image generation work.
+
+### 1. Link the project (if not already done)
+
+You’ll be prompted for your **database password**:
+
+```sh
+npm run supabase:link
+```
+
+### 2. Set the Gemini API key secret
+
+Both functions need `GEMINI_API_KEY`. Set it in the linked project:
+
+```sh
+npx supabase secrets set GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Get an API key from [Google AI Studio](https://aistudio.google.com/apikey). Replace `your_gemini_api_key_here` with your real key.
+
+### 3. Deploy all edge functions
+
+```sh
+npm run supabase:functions-deploy
+```
+
+Or deploy one at a time:
+
+```sh
+# Ideas (Step 2 – “Generate ideas”)
+npm run supabase:functions-deploy-ideas
+
+# Image generation (Step 3)
+npm run supabase:functions-deploy-image
+```
+
+### 4. Verify
+
+- In the [Supabase Dashboard](https://supabase.com/dashboard) → your project → **Edge Functions**, you should see `ai-creative-assistant` and `ai-image-generator`.
+- In the app: sign up, go to Step 2, click **Generate ideas**. The request should go to `https://znjtxrzmlprhqaylimqm.supabase.co/functions/v1/ai-creative-assistant` and succeed if the secret is set.
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).

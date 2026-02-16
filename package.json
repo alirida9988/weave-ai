@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "supabase:link": "supabase link --project-ref znjtxrzmlprhqaylimqm",
-    "supabase:db-push": "supabase db push"
+    "supabase:db-push": "supabase db push",
+    "supabase:functions-deploy": "supabase functions deploy",
+    "supabase:functions-deploy-ideas": "supabase functions deploy ai-creative-assistant",
+    "supabase:functions-deploy-image": "supabase functions deploy ai-image-generator"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
