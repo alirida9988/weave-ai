@@ -2,10 +2,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Use environment variables for Supabase configuration
-// Fallback to jptrvtzebufjgpfurobg (your project)
-const DEFAULT_SUPABASE_URL = "https://jptrvtzebufjgpfurobg.supabase.co";
-const DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpwdHJ2dHplYnVmamdwZnVyb2JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNTUxODMsImV4cCI6MjA4MjkzMTE4M30.5Abl9JDS5SPqGLRWTQJ-nrYkDJGk8LjcI-urCXM9y7w";
+// Use environment variables for Supabase configuration (project znjtxrzmlprhqaylimqm)
+const DEFAULT_SUPABASE_URL = "https://znjtxrzmlprhqaylimqm.supabase.co";
+const DEFAULT_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuanR4cnptbHByaHFheWxpbXFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNjA5OTUsImV4cCI6MjA4NjgzNjk5NX0.VaHUe6l_f3LvJpvToeuXS4tGwPnqUZmf61KEX39gLZ0";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_ANON_KEY;

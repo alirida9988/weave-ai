@@ -36,6 +36,36 @@ npm i
 npm run dev
 ```
 
+## Supabase: link project and run migrations
+
+After transferring the project to a new repo, rewire the Supabase project and apply migrations:
+
+1. **Link this repo to your Supabase project** (you’ll be prompted for your **database password** in the terminal):
+
+   ```sh
+   npm run supabase:link
+   ```
+
+   Or with the CLI directly:
+
+   ```sh
+   npx supabase link --project-ref znjtxrzmlprhqaylimqm
+   ```
+
+2. **Apply migrations to the linked database**:
+
+   ```sh
+   npm run supabase:db-push
+   ```
+
+   Or:
+
+   ```sh
+   npx supabase db push
+   ```
+
+   If you have no migrations in `supabase/migrations/`, this step does nothing until you add migration files. Your app still works; it uses the schema already in the Supabase project (or the one you set up in the dashboard).
+
 **Edit a file directly in GitHub**
 
 - Navigate to the desired file(s).
