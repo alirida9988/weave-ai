@@ -28,12 +28,31 @@ import {
 
 export const Step1 = () => {
   const navigate = useNavigate();
-  const { brand, setBrand, product, setProduct, setCurrentStep } = useBrand();
-  
+  const {
+    brand,
+    setBrand,
+    product,
+    setProduct,
+    setCurrentStep,
+    setCreativeBrief,
+    setSelectedIdeaPrompt,
+    setGeneratedImage,
+    resetIdeaCount,
+  } = useBrand();
+
   // Set current step on mount
   useEffect(() => {
     setCurrentStep(1);
   }, [setCurrentStep]);
+
+  // Clear previous run's ideas and image when landing on Step 1 so Step 2/3 start fresh
+  useEffect(() => {
+    setCreativeBrief('');
+    setSelectedIdeaPrompt(null);
+    setGeneratedImage(null);
+    resetIdeaCount();
+    localStorage.removeItem('selectedIdeaPrompt');
+  }, [setCreativeBrief, setSelectedIdeaPrompt, setGeneratedImage, resetIdeaCount]);
   
   // Brand creation state
   const [showBrandDialog, setShowBrandDialog] = useState(false);

@@ -31,28 +31,33 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    }).catch(() => {
-      // If Supabase fails, fall back to localStorage
-      const storedUser = localStorage.getItem('weave_user');
-      if (storedUser) {
-        try {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-        } catch (e) {
-          localStorage.removeItem('weave_user');
+    // Get initial session (ignore 400/network errors so app still loads)
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) {
+          console.warn('[Auth] getSession error (ignored):', error.message);
         }
-      }
-      setLoading(false);
-    });
+        setSession(session ?? null);
+        setUser(session?.user ?? null);
+      })
+      .catch((err) => {
+        // Supabase unreachable or 400 (e.g. invalid/expired refresh token)
+        console.warn('[Auth] getSession failed (ignored):', err?.message || err);
+        const storedUser = localStorage.getItem('weave_user');
+        if (storedUser) {
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+          } catch (e) {
+            localStorage.removeItem('weave_user');
+          }
+        }
+      })
+      .finally(() => setLoading(false));
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+      setSession(session ?? null);
       setUser(session?.user ?? null);
     });
 
@@ -60,6 +65,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const signUp = async (email: string, password: string, name?: string) => {
+    if (import.meta.env.VITE_USE_LOCAL_AUTH === 'true') {
+      return fallbackSignUp(email, password, name);
+    }
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -70,42 +78,36 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           },
         },
       });
-      
       if (error) {
-        // Fallback to localStorage if Supabase fails
         return fallbackSignUp(email, password, name);
       }
-      
       if (data.user) {
         setUser(data.user);
       }
-      
       return { error: null };
-    } catch (error) {
-      // Fallback to localStorage if Supabase fails
+    } catch {
       return fallbackSignUp(email, password, name);
     }
   };
 
   const signIn = async (email: string, password: string) => {
+    // Use local auth only to avoid 400 from Supabase (e.g. email not confirmed or wrong project)
+    if (import.meta.env.VITE_USE_LOCAL_AUTH === 'true') {
+      return fallbackSignIn(email, password);
+    }
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
       if (error) {
-        // Fallback to localStorage if Supabase fails
         return fallbackSignIn(email, password);
       }
-      
       if (data.user) {
         setUser(data.user);
       }
-      
       return { error: null };
-    } catch (error) {
-      // Fallback to localStorage if Supabase fails
+    } catch {
       return fallbackSignIn(email, password);
     }
   };

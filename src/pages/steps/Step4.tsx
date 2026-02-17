@@ -108,15 +108,19 @@ export const Step4 = () => {
     // Load the generated image as background
     FabricImage.fromURL(generatedImage, { crossOrigin: 'anonymous' })
       .then((img) => {
-        // Scale image to fit canvas while maintaining aspect ratio
+        // Scale image to CONTAIN (show full image, no cropping) and center it
         const scaleX = (CANVAS_WIDTH * DISPLAY_SCALE) / (img.width || 1);
         const scaleY = (CANVAS_HEIGHT * DISPLAY_SCALE) / (img.height || 1);
-        const scale = Math.max(scaleX, scaleY);
+        const scale = Math.min(scaleX, scaleY);
 
         img.scale(scale);
+        const w = (img.width || 0) * scale;
+        const h = (img.height || 0) * scale;
+        const left = ((CANVAS_WIDTH * DISPLAY_SCALE) - w) / 2;
+        const top = ((CANVAS_HEIGHT * DISPLAY_SCALE) - h) / 2;
         img.set({
-          left: 0,
-          top: 0,
+          left,
+          top,
           originX: 'left',
           originY: 'top',
         });

@@ -47,7 +47,8 @@ export const Step2 = () => {
     setSelectedIdeaPrompt,
     ideaGenerationCount,
     incrementIdeaCount,
-    setCurrentStep
+    setCurrentStep,
+    setGeneratedImage
   } = useBrand();
 
   const [isGenerating, setIsGenerating] = useState(false);
@@ -114,6 +115,12 @@ export const Step2 = () => {
       toast.error("You've used all your idea generations. Please proceed with the current selection.");
       return;
     }
+
+    // Clear previous selection, textarea, and Step 3 image so new ideas are the only focus
+    setSelectedIdea(null);
+    setSelectedIdeaPrompt(null);
+    setCreativeBrief('');
+    setGeneratedImage(null);
 
     setIsGenerating(true);
     try {

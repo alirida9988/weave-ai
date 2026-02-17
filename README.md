@@ -40,6 +40,14 @@ npm run dev
 
 After transferring the project to a new repo, rewire the Supabase project and apply migrations:
 
+0. **First time only: log in to Supabase** (so the CLI can use your account):
+
+   ```sh
+   npx supabase login
+   ```
+
+   A browser tab will open; sign in with the same account that owns the Supabase project. After you finish, come back to the terminal and continue.
+
 1. **Link this repo to your Supabase project** (you’ll be prompted for your **database password** in the terminal):
 
    ```sh
@@ -69,6 +77,16 @@ After transferring the project to a new repo, rewire the Supabase project and ap
 ## Deploy Edge Functions (new project)
 
 The app uses two Supabase Edge Functions. Deploy them to your **new** project (`znjtxrzmlprhqaylimqm`) so “Generate ideas” and image generation work.
+
+### 0. Log in to Supabase (first time only)
+
+The CLI needs to know who you are. In the project folder run:
+
+```sh
+npx supabase login
+```
+
+A browser window will open — sign in with the account that owns your Supabase project. Then return to the terminal.
 
 ### 1. Link the project (if not already done)
 
@@ -108,6 +126,36 @@ npm run supabase:functions-deploy-image
 
 - In the [Supabase Dashboard](https://supabase.com/dashboard) → your project → **Edge Functions**, you should see `ai-creative-assistant` and `ai-image-generator`.
 - In the app: sign up, go to Step 2, click **Generate ideas**. The request should go to `https://znjtxrzmlprhqaylimqm.supabase.co/functions/v1/ai-creative-assistant` and succeed if the secret is set.
+
+## Step 5: Generate shareable link – Storage bucket
+
+For **Step 5** (“Generate a shareable link”) to work, the app uploads the final visual to Supabase Storage. You need a **public** bucket named `final-visuals`.
+
+1. Open the [Supabase Dashboard](https://supabase.com/dashboard) → your project (**znjtxrzmlprhqaylimqm**).
+2. Go to **Storage** in the left sidebar.
+3. Click **New bucket**.
+4. Set **Name** to `final-visuals` (must be exactly this).
+5. Turn **Public bucket** on (so shareable links work).
+6. Click **Create bucket**.
+7. **Allow uploads:** The bucket is public for *reading* links, but uploads need RLS policies. Run this in **SQL Editor** (once) to allow authenticated users to upload, read, and update (needed for "Generate link"):
+
+   ```sql
+   drop policy if exists "Allow authenticated uploads to final-visuals" on storage.objects;
+
+   create policy "final-visuals insert"
+   on storage.objects for insert to authenticated
+   with check (bucket_id = 'final-visuals');
+
+   create policy "final-visuals select"
+   on storage.objects for select to authenticated
+   using (bucket_id = 'final-visuals');
+
+   create policy "final-visuals update"
+   on storage.objects for update to authenticated
+   using (bucket_id = 'final-visuals');
+   ```
+
+After that, “Generate Link” in Step 5 will upload the image and copy a public URL.
 
 **Edit a file directly in GitHub**
 

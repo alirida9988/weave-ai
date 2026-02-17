@@ -173,10 +173,10 @@ export const Step5 = () => {
       const filename = `${brand.name.replace(/\s+/g, '-')}-${Date.now()}.png`;
       const path = `visuals/${filename}`;
 
-      // Upload to Supabase
+      // Upload to Supabase (upsert: false so only INSERT policy is required)
       const { error } = await supabase.storage
         .from('final-visuals')
-        .upload(path, blob, { contentType: 'image/png', upsert: true });
+        .upload(path, blob, { contentType: 'image/png', upsert: false });
 
       if (error) {
         console.error('[Step5] Upload error:', error);
