@@ -38,7 +38,7 @@ declare module 'fabric' {
   }
 }
 
-// Canvas dimensions
+// Canvas dimensions (match generated image aspect to avoid padding)
 const CANVAS_WIDTH = 1920;
 const CANVAS_HEIGHT = 1080;
 const DISPLAY_SCALE = 0.5; // Scale for display
@@ -80,6 +80,7 @@ export const Step4 = () => {
   const [layersVersion, setLayersVersion] = useState(0);
   const [lockAspectRatio, setLockAspectRatio] = useState(false);
   const [canvasObjects, setCanvasObjects] = useState<FabricObject[]>([]);
+  const [canvasDisplaySize, setCanvasDisplaySize] = useState<{ width: number; height: number } | null>(null);
 
   // Advanced editor state
   const [elementOpacity, setElementOpacity] = useState<number>(100);
@@ -102,7 +103,7 @@ export const Step4 = () => {
     const canvas = new Canvas(canvasNode, {
       width: CANVAS_WIDTH * DISPLAY_SCALE,
       height: CANVAS_HEIGHT * DISPLAY_SCALE,
-      backgroundColor: '#1a1a2e',
+      backgroundColor: '#ffffff',
       selection: true,
       preserveObjectStacking: true,
     });
@@ -131,15 +132,15 @@ export const Step4 = () => {
     };
   }, [canvasNode]);
 
-  // Load background image: show FULL image (object-fit: contain) – scale to fit, centered, no cropping
+  // Load background image and resize canvas to image aspect ratio – full image visible, no cropping, no gaps
+  const MAX_DISPLAY_WIDTH = 1200;
+  const MAX_DISPLAY_HEIGHT = 800;
+
   useEffect(() => {
     if (!canvasReady || !generatedImage || !fabricCanvasRef.current) return;
 
     const canvas = fabricCanvasRef.current;
     setIsLoading(true);
-
-    const cw = CANVAS_WIDTH * DISPLAY_SCALE;
-    const ch = CANVAS_HEIGHT * DISPLAY_SCALE;
 
     const el = document.createElement('img');
     el.crossOrigin = 'anonymous';
@@ -148,20 +149,22 @@ export const Step4 = () => {
       const ih = el.naturalHeight || 1;
       el.width = iw;
       el.height = ih;
-      // Contain: scale so full image fits inside canvas (no cropping, possible letterboxing)
-      const scale = Math.min(cw / iw, ch / ih);
-      const scaledW = iw * scale;
-      const scaledH = ih * scale;
-      const left = (cw - scaledW) / 2;
-      const top = (ch - scaledH) / 2;
+      const aspectRatio = iw / ih;
+      let displayWidth = MAX_DISPLAY_WIDTH;
+      let displayHeight = Math.round(displayWidth / aspectRatio);
+      if (displayHeight > MAX_DISPLAY_HEIGHT) {
+        displayHeight = MAX_DISPLAY_HEIGHT;
+        displayWidth = Math.round(displayHeight * aspectRatio);
+      }
 
+      canvas.setDimensions({ width: displayWidth, height: displayHeight });
       const img = new FabricImage(el, {
         width: iw,
         height: ih,
-        scaleX: scale,
-        scaleY: scale,
-        left,
-        top,
+        scaleX: displayWidth / iw,
+        scaleY: displayHeight / ih,
+        left: 0,
+        top: 0,
         originX: 'left',
         originY: 'top',
         selectable: false,
@@ -174,6 +177,7 @@ export const Step4 = () => {
       backgroundImageRef.current = img;
       canvas.backgroundImage = img;
       canvas.requestRenderAll();
+      setCanvasDisplaySize({ width: displayWidth, height: displayHeight });
       setIsLoading(false);
     };
     el.onerror = () => {
@@ -225,13 +229,15 @@ export const Step4 = () => {
     if (!fabricCanvasRef.current) return;
 
     const canvas = fabricCanvasRef.current;
+    const cw = canvas.width ?? CANVAS_WIDTH * DISPLAY_SCALE;
+    const ch = canvas.height ?? CANVAS_HEIGHT * DISPLAY_SCALE;
     const text = new IText('Click to edit', {
-      left: (CANVAS_WIDTH * DISPLAY_SCALE) / 2,
-      top: (CANVAS_HEIGHT * DISPLAY_SCALE) / 2,
+      left: cw / 2,
+      top: ch / 2,
       originX: 'center',
       originY: 'center',
       fontFamily: brandFontFamily.split(',')[0].replace(/"/g, ''),
-      fontSize: 48 * DISPLAY_SCALE,
+      fontSize: Math.min(48, cw * 0.05),
       fill: '#ffffff',
       stroke: 'rgba(0,0,0,0.3)',
       strokeWidth: 1,
@@ -253,8 +259,8 @@ export const Step4 = () => {
   const handleAddLogo = useCallback(() => {
     if (!fabricCanvasRef.current) return;
 
-    const cw = CANVAS_WIDTH * DISPLAY_SCALE;
-    const ch = CANVAS_HEIGHT * DISPLAY_SCALE;
+    const cw = fabricCanvasRef.current.width ?? CANVAS_WIDTH * DISPLAY_SCALE;
+    const ch = fabricCanvasRef.current.height ?? CANVAS_HEIGHT * DISPLAY_SCALE;
     const maxWidth = cw * 0.6;
     const maxHeight = ch * 0.6;
 
@@ -341,8 +347,8 @@ export const Step4 = () => {
   const handleAddBrandLogo = useCallback(() => {
     if (!fabricCanvasRef.current || !brand?.logoUrl) return;
 
-    const cw = CANVAS_WIDTH * DISPLAY_SCALE;
-    const ch = CANVAS_HEIGHT * DISPLAY_SCALE;
+    const cw = fabricCanvasRef.current.width ?? CANVAS_WIDTH * DISPLAY_SCALE;
+    const ch = fabricCanvasRef.current.height ?? CANVAS_HEIGHT * DISPLAY_SCALE;
     const maxWidth = cw * 0.6;
     const maxHeight = ch * 0.6;
 
@@ -610,13 +616,13 @@ export const Step4 = () => {
     setLayersVersion((v) => v + 1);
   }, []);
 
-  // Transform controls (value in design pixels for left/top/width/height)
+  // Transform controls (value in canvas pixels – canvas is sized to image)
   const handleTransformChange = useCallback((
     key: 'left' | 'top' | 'width' | 'height' | 'angle',
     value: number
   ) => {
     if (!fabricCanvasRef.current || !selectedObject) return;
-    const scaled = value * DISPLAY_SCALE;
+    const scaled = value;
     if (key === 'angle') {
       selectedObject.set('angle', value);
     } else if (key === 'left' || key === 'top') {
@@ -649,8 +655,8 @@ export const Step4 = () => {
     const allObjects = canvas.getObjects().filter((o) => !o.isBackground);
     const objects = active ? [active] : allObjects;
     if (objects.length === 0) return;
-    const cW = CANVAS_WIDTH * DISPLAY_SCALE;
-    const cH = CANVAS_HEIGHT * DISPLAY_SCALE;
+    const cW = canvas.width ?? CANVAS_WIDTH * DISPLAY_SCALE;
+    const cH = canvas.height ?? CANVAS_HEIGHT * DISPLAY_SCALE;
     if (objects.length === 1) {
       const obj = objects[0];
       const bbox = obj.getBoundingRect(true);
@@ -703,16 +709,17 @@ export const Step4 = () => {
   // Add shape: Rectangle
   const handleAddRectangle = useCallback(() => {
     if (!fabricCanvasRef.current) return;
-
+    const cw = fabricCanvasRef.current.width ?? CANVAS_WIDTH * DISPLAY_SCALE;
+    const ch = fabricCanvasRef.current.height ?? CANVAS_HEIGHT * DISPLAY_SCALE;
     const rect = new Rect({
-      left: (CANVAS_WIDTH * DISPLAY_SCALE) / 2 - 75,
-      top: (CANVAS_HEIGHT * DISPLAY_SCALE) / 2 - 50,
-      width: 150 * DISPLAY_SCALE,
-      height: 100 * DISPLAY_SCALE,
+      left: cw / 2 - 75,
+      top: ch / 2 - 50,
+      width: 150,
+      height: 100,
       fill: brand?.colors.primary || '#7C3AED',
       opacity: 0.8,
-      rx: 8 * DISPLAY_SCALE,
-      ry: 8 * DISPLAY_SCALE,
+      rx: 8,
+      ry: 8,
       cornerStyle: 'circle',
       cornerColor: brand?.colors.primary || '#7C3AED',
       borderColor: brand?.colors.primary || '#7C3AED',
@@ -732,11 +739,12 @@ export const Step4 = () => {
   // Add shape: Circle
   const handleAddCircle = useCallback(() => {
     if (!fabricCanvasRef.current) return;
-
+    const cw = fabricCanvasRef.current.width ?? CANVAS_WIDTH * DISPLAY_SCALE;
+    const ch = fabricCanvasRef.current.height ?? CANVAS_HEIGHT * DISPLAY_SCALE;
     const circle = new FabricCircle({
-      left: (CANVAS_WIDTH * DISPLAY_SCALE) / 2 - 50,
-      top: (CANVAS_HEIGHT * DISPLAY_SCALE) / 2 - 50,
-      radius: 50 * DISPLAY_SCALE,
+      left: cw / 2 - 50,
+      top: ch / 2 - 50,
+      radius: 50,
       fill: brand?.colors.secondary || '#3B82F6',
       opacity: 0.8,
       cornerStyle: 'circle',
@@ -835,7 +843,7 @@ export const Step4 = () => {
     try {
       // Generate high-resolution export (2x multiplier)
       const canvas = fabricCanvasRef.current;
-      const multiplier = 2 / DISPLAY_SCALE; // Results in 2x the original size
+      const multiplier = 2 / DISPLAY_SCALE; // Export at 2x design resolution
       
       // Get data URL at high resolution
       const dataUrl = canvas.toDataURL({
@@ -975,7 +983,7 @@ export const Step4 = () => {
             <LayerPanel
               objects={canvasObjects}
               selectedObject={selectedObject}
-              displayScale={DISPLAY_SCALE}
+              displayScale={1}
               onSelect={handleLayerSelect}
               onDelete={handleLayerDelete}
               onDuplicate={handleLayerDuplicate}
@@ -1063,7 +1071,7 @@ export const Step4 = () => {
                 <div className="space-y-3">
                   <TransformControls
                     selectedObject={selectedObject}
-                    displayScale={DISPLAY_SCALE}
+                    displayScale={1}
                     onTransformChange={handleTransformChange}
                     lockAspectRatio={lockAspectRatio}
                     onLockAspectRatioChange={setLockAspectRatio}
@@ -1126,8 +1134,8 @@ export const Step4 = () => {
                         <div>
                           <Label className="text-xs font-medium text-muted-foreground">Size</Label>
                           <Select 
-                            value={String(Math.round(((selectedObject as IText).fontSize || 24) / DISPLAY_SCALE))}
-                            onValueChange={(value) => updateTextProperty('fontSize', Number(value) * DISPLAY_SCALE)}
+                            value={String(Math.round((selectedObject as IText).fontSize || 24))}
+                            onValueChange={(value) => updateTextProperty('fontSize', Number(value))}
                           >
                             <SelectTrigger className="mt-1 bg-secondary/50">
                               <SelectValue />
@@ -1188,8 +1196,8 @@ export const Step4 = () => {
                         <div>
                           <Label className="text-xs text-muted-foreground">Font size (8-200)</Label>
                           <Input type="number" min={8} max={200} className="mt-0.5 h-8 bg-secondary/50"
-                            value={Math.round(((selectedObject as IText).fontSize ?? 24) / DISPLAY_SCALE)}
-                            onChange={(e) => updateTextProperty('fontSize', Number(e.target.value) * DISPLAY_SCALE)} />
+                            value={Math.round((selectedObject as IText).fontSize ?? 24)}
+                            onChange={(e) => updateTextProperty('fontSize', Number(e.target.value))} />
                         </div>
                         <div className="col-span-2 flex gap-1">
                           <Button variant={(selectedObject as IText).fontWeight === 'bold' ? 'default' : 'outline'} size="sm" className="flex-1" onClick={() => updateTextProperty('fontWeight', (selectedObject as IText).fontWeight === 'bold' ? 'normal' : 'bold')}>Bold</Button>
@@ -1380,14 +1388,14 @@ export const Step4 = () => {
               {/* Alignment toolbar: inside canvas area, never cropped */}
               <div className="w-full mb-3 flex justify-center overflow-visible shrink-0" style={{ minWidth: 320 }}>
                 <AlignmentToolbar
-                  canvasWidth={CANVAS_WIDTH}
-                  canvasHeight={CANVAS_HEIGHT}
-                  displayScale={DISPLAY_SCALE}
+                  canvasWidth={canvasDisplaySize?.width ?? CANVAS_WIDTH * DISPLAY_SCALE}
+                  canvasHeight={canvasDisplaySize?.height ?? CANVAS_HEIGHT * DISPLAY_SCALE}
+                  displayScale={1}
                   selectedObjects={selectedObject ? [selectedObject] : canvasObjects}
                   onAlign={handleAlign}
                 />
               </div>
-              <Card className="p-4 glass overflow-hidden relative w-full" style={{ maxWidth: CANVAS_WIDTH * DISPLAY_SCALE + 32 }}>
+              <Card className="p-4 glass overflow-hidden relative w-full" style={{ maxWidth: (canvasDisplaySize?.width ?? CANVAS_WIDTH * DISPLAY_SCALE) + 32 }}>
                 <div
                   className="flex flex-col items-center justify-center relative"
                   style={{ width: '100%', paddingTop: 8, paddingBottom: 8 }}
@@ -1400,31 +1408,32 @@ export const Step4 = () => {
                       </div>
                     </div>
                   )}
-                  {/* Canvas wrapper: fixed size, margin 0 auto, centered */}
+                  {/* Canvas wrapper: size matches image aspect ratio (set when image loads) */}
                   <div
-                    className="rounded-xl overflow-hidden border-2"
+                    className="rounded-xl overflow-hidden border-2 shrink-0"
                     style={{
-                      width: CANVAS_WIDTH * DISPLAY_SCALE,
-                      height: CANVAS_HEIGHT * DISPLAY_SCALE,
+                      width: canvasDisplaySize?.width ?? CANVAS_WIDTH * DISPLAY_SCALE,
+                      height: canvasDisplaySize?.height ?? CANVAS_HEIGHT * DISPLAY_SCALE,
                       borderColor: brand.colors.primary,
                       margin: '0 auto',
                       position: 'relative',
                     }}
                   >
                     <canvas
-                      width={CANVAS_WIDTH * DISPLAY_SCALE}
-                      height={CANVAS_HEIGHT * DISPLAY_SCALE}
+                      width={canvasDisplaySize?.width ?? CANVAS_WIDTH * DISPLAY_SCALE}
+                      height={canvasDisplaySize?.height ?? CANVAS_HEIGHT * DISPLAY_SCALE}
                       style={{ display: 'block', position: 'relative' }}
                       ref={(node) => {
                         (canvasRef as React.MutableRefObject<HTMLCanvasElement | null>).current = node;
                         setCanvasNode(node);
                       }}
                     />
+                    </div>
                   </div>
 
                 {/* Canvas Info */}
                 <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground w-full">
-                  <span>Canvas: {CANVAS_WIDTH} × {CANVAS_HEIGHT}px</span>
+                  <span>Canvas: {canvasDisplaySize ? `${canvasDisplaySize.width} × ${canvasDisplaySize.height}px` : `${CANVAS_WIDTH} × ${CANVAS_HEIGHT}px`}</span>
                   <div className="flex items-center gap-2 shrink-0">
                     {selectedObject && (
                       <Button
@@ -1492,7 +1501,6 @@ export const Step4 = () => {
                     )}
                   </div>
                 </div>
-              </div>
             </Card>
           </div>
           </main>

@@ -119,6 +119,16 @@ export const Step1 = () => {
     localStorage.removeItem('brandInfo');
   };
 
+  // Toggle brand: click same card to deselect, click another to switch
+  const handleBrandCardClick = (presetBrand: BrandInfo) => {
+    const isCurrentlySelected = brand != null && String(brand.id) === String(presetBrand.id);
+    if (isCurrentlySelected) {
+      handleRemoveBrand();
+    } else {
+      handleSelectBrand(presetBrand);
+    }
+  };
+
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -193,9 +203,16 @@ export const Step1 = () => {
     setUploadedLogo(null);
   };
 
+  // Toggle product: click same tag to deselect, click another to switch
   const handleProductSelect = useCallback((value: string) => {
-    setProductInput(value);
-    setProduct({ type: value, description: value });
+    const isCurrentlySelected = productInput === value;
+    if (isCurrentlySelected) {
+      setProductInput('');
+      setProduct(null);
+    } else {
+      setProductInput(value);
+      setProduct({ type: value, description: value });
+    }
     setShowSuggestions(false);
   }, [setProduct]);
 
@@ -279,7 +296,7 @@ export const Step1 = () => {
                           ? 'border-primary bg-primary/10 shadow-border-glow' 
                           : 'border-border hover:border-primary/50'
                       }`}
-                      onClick={() => handleSelectBrand(presetBrand)}
+                      onClick={() => handleBrandCardClick(presetBrand)}
                     >
                       <div className="flex items-center gap-3">
                         <div 

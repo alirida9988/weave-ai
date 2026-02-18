@@ -155,11 +155,18 @@ export const Step2 = () => {
     }
   };
 
-  const handleSelectIdea = (idea: IdeaCard) => {
-    setSelectedIdea(idea.id);
-    setCreativeBrief(idea.prompt);
-    setSelectedIdeaPrompt(idea.prompt);
-    toast.success(`Selected: ${idea.title}`);
+  const handleIdeaCardClick = (idea: IdeaCard) => {
+    const isCurrentlySelected = selectedIdea === idea.id;
+    if (isCurrentlySelected) {
+      setSelectedIdea(null);
+      setCreativeBrief('');
+      setSelectedIdeaPrompt(null);
+    } else {
+      setSelectedIdea(idea.id);
+      setCreativeBrief(idea.prompt);
+      setSelectedIdeaPrompt(idea.prompt);
+      toast.success(`Selected: ${idea.title}`);
+    }
   };
 
   const handleCreateVisual = () => {
@@ -389,7 +396,7 @@ export const Step2 = () => {
                             ? 'border-2 border-primary bg-primary/10 shadow-border-glow' 
                             : 'border-border hover:border-primary/50 glass'
                         }`}
-                        onClick={() => handleSelectIdea(idea)}
+                        onClick={() => handleIdeaCardClick(idea)}
                       >
                         {/* Category Badge */}
                         <div className="flex items-center justify-between mb-3">
