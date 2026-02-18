@@ -154,8 +154,12 @@ export const BrandProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [currentStep, setCurrentStepState] = useState<number>(1);
   const [projectId, setProjectIdState] = useState<string | null>(null);
 
-  // Load current project from localStorage on mount
+  // Load current project from localStorage on mount only if not coming from a fresh login
+  // (Auth clears storage on sign-in/sign-out so we don't persist across sessions)
   useEffect(() => {
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('oauthPending') === '1') {
+      return; // Step1 will call clearAll when oauthPending is set
+    }
     const savedBrand = localStorage.getItem('brandInfo');
     const savedProduct = localStorage.getItem('productInfo');
     const savedBrief = localStorage.getItem('creativeBrief');

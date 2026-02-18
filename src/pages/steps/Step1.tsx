@@ -25,6 +25,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 export const Step1 = () => {
   const navigate = useNavigate();
@@ -38,12 +44,27 @@ export const Step1 = () => {
     setSelectedIdeaPrompt,
     setGeneratedImage,
     resetIdeaCount,
+    clearAll,
   } = useBrand();
 
   // Set current step on mount
   useEffect(() => {
     setCurrentStep(1);
   }, [setCurrentStep]);
+
+  // Reset selections when returning from Google OAuth (fresh session)
+  useEffect(() => {
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('oauthPending') === '1') {
+      clearAll();
+      setProductInput('');
+      sessionStorage.removeItem('oauthPending');
+    }
+  }, [clearAll]);
+
+  // Sync product input with context when product is cleared
+  useEffect(() => {
+    setProductInput(product?.type ?? '');
+  }, [product]);
 
   // Clear previous run's ideas and image when landing on Step 1 so Step 2/3 start fresh
   useEffect(() => {
@@ -91,6 +112,11 @@ export const Step1 = () => {
   const handleSelectBrand = (selectedBrand: BrandInfo) => {
     setBrand(selectedBrand);
     toast.success(`Selected ${selectedBrand.name}`);
+  };
+
+  const handleRemoveBrand = () => {
+    setBrand(null);
+    localStorage.removeItem('brandInfo');
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,7 +275,7 @@ export const Step1 = () => {
                   >
                     <Card 
                       className={`p-4 cursor-pointer glass transition-all ${
-                        brand?.id === presetBrand.id 
+                        brand != null && String(brand.id) === String(presetBrand.id)
                           ? 'border-primary bg-primary/10 shadow-border-glow' 
                           : 'border-border hover:border-primary/50'
                       }`}
@@ -278,7 +304,7 @@ export const Step1 = () => {
                             <span className="text-xs text-muted-foreground ml-2">{presetBrand.font}</span>
                           </div>
                         </div>
-                        {brand?.id === presetBrand.id && (
+                        {brand != null && String(brand.id) === String(presetBrand.id) && (
                           <Badge className="bg-primary text-primary-foreground">
                             <Check className="w-3 h-3 mr-1" />
                             Selected
@@ -452,12 +478,32 @@ export const Step1 = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="mt-4 p-4 bg-accent/10 border border-accent/30 rounded-lg"
                   >
-                    <div className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-accent" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Check className="w-4 h-4 text-accent shrink-0" />
                       <span className="text-sm font-medium text-foreground">Product Selected:</span>
                       <Badge variant="outline" className="bg-accent/20 border-accent/30">
                         {productInput}
                       </Badge>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProduct(null);
+                                setProductInput('');
+                              }}
+                              className="ml-1 p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
+                              aria-label="Remove product selection"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Remove selection</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </motion.div>
                 )}
@@ -491,11 +537,54 @@ export const Step1 = () => {
                         </div>
                       )}
                       <span className="text-sm font-medium text-foreground">{brand.name}</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleRemoveBrand();
+                              }}
+                              className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
+                              aria-label="Remove brand selection"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Remove selection</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                     <div className="text-muted-foreground">→</div>
-                    <Badge variant="outline" className="text-sm">
-                      {productInput}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline" className="text-sm">
+                        {productInput}
+                      </Badge>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProduct(null);
+                                setProductInput('');
+                              }}
+                              className="p-0.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
+                              aria-label="Remove product selection"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Remove selection</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </div>
                 </Card>
               </motion.div>

@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -166,6 +167,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return { error: null };
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/step1`,
+        },
+      });
+      if (error) return { error };
+      if (data?.url) {
+        sessionStorage.setItem('oauthPending', '1');
+        window.location.href = data.url;
+        return { error: null };
+      }
+      return { error: new Error('No redirect URL') };
+    } catch (e) {
+      return { error: e instanceof Error ? e : new Error('Google sign-in failed') };
+    }
+  };
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -174,12 +195,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
     localStorage.removeItem('weave_user');
     localStorage.removeItem('hasStartedProject');
+    localStorage.removeItem('brandInfo');
+    localStorage.removeItem('productInfo');
+    localStorage.removeItem('creativeBrief');
+    localStorage.removeItem('ideaGenerationCount');
+    localStorage.removeItem('selectedIdeaPrompt');
+    localStorage.removeItem('generatedImage');
+    localStorage.removeItem('finalVisualUrl');
+    localStorage.removeItem('currentStep');
+    localStorage.removeItem('projectId');
+    sessionStorage.removeItem('oauthPending');
     setUser(null);
     setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, signUp, signIn, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );
